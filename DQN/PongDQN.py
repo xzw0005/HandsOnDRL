@@ -127,8 +127,8 @@ if __name__=="__main__":
     while True:
         frame_idx += 1
         epsilon = max(EPSILON_FINAL, EPSILON_START-frame_idx/EPSILON_DECAY_LAST_FRAME)
-        reward = agent.play_step(net, epsilon, device)
-        if reward is not None:
+        reward = agent.play_step(net, epsilon, device)  # every iter is a single step
+        if reward is not None:  # AKA if done (end of an episode)
             total_rewards.append(reward)
             speed = (frame_idx-ts_frame) / (time.time()-ts)
             ts_frame = frame_idx
@@ -141,12 +141,12 @@ if __name__=="__main__":
             writer.add_scalar('mean_reward_100', mean_reward, frame_idx)
             writer.add_scalar('reward', reward, frame_idx)
             if best_mean_reward is None or best_mean_reward < mean_reward:
-                torch.save(net.state_dict(), args.env+'-best.dat')
+                torch.save(net.state_dict(), args.env+'-best.dat')  # save model parameters
                 if best_mean_reward is not None:
                     print('Best mean reward updated %.3f --> %.3f, model saved'\
                           (best_mean_reward, mean_reward))
                     best_mean_reward = mean_reward
-            if mean_reward > args.reward:
+            if mean_reward > args.reward:   # Stopping Criterion
                 print('Solved in %d frames!'%frame_idx)
                 break
             
