@@ -99,5 +99,3 @@ def calc_loss_dqn(batch, net, target_net, gamma, device='cpu', double=True):
         
         
         
-        
-        
