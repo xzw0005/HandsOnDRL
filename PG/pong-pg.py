@@ -3,11 +3,11 @@ Created on Dec 30, 2018
 
 @author: wangxing
 '''
+import time
+import sys
 import gym 
 import numpy as np
 import argparse
-import time
-import sys
 from collections import deque
 from tensorboardX import SummaryWriter 
 
@@ -228,19 +228,3 @@ if __name__=='__main__':
             batch_scales.clear()
         
     writer.close()    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

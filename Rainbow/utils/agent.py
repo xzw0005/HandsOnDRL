@@ -67,30 +67,3 @@ class TargetNet:
         for k, v in state.items():
             target_state[k] = target_state[k] * alpha + (1 - alpha) * v 
         self.target_model.load_state_dict(target_state)
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
