@@ -103,14 +103,14 @@ if __name__=='__main__':
     optimizer = optim.Adam(net.parameters(), lr= LEARNING_RATE)
     
     total_rewards = []
-    step_idx = 0 
+    itr = 0 
     done_episodes = 0
     
     batch_episodes = 0 
     batch_states, batch_actions, batch_qvals = [], [], []
     cur_rewards = [] 
     
-    for step_idx, exp in enumerate(exp_source):
+    for itr, exp in enumerate(exp_source):
         batch_states.append(exp.state)
         batch_actions.append(int(exp.action))
         cur_rewards.append(exp.reward)
@@ -127,12 +127,12 @@ if __name__=='__main__':
             total_rewards.append(reward)
             mean_rewards = float(np.mean(total_rewards[-100:]))
             print("%d: reward: %6.2f, mean_100: %6.2f, episodes: %d"%(
-                step_idx, reward, mean_rewards, done_episodes))
-            writer.add_scalar("reward", reward, step_idx)
-            writer.add_scalar("reward_100", mean_rewards, step_idx)
-            writer.add_scalar("episodes", done_episodes, step_idx)
+                itr, reward, mean_rewards, done_episodes))
+            writer.add_scalar("reward", reward, itr)
+            writer.add_scalar("reward_100", mean_rewards, itr)
+            writer.add_scalar("episodes", done_episodes, itr)
             if mean_rewards > 195:
-                print("Solved in %d steps and %d episodes!"%(step_idx, done_episodes))
+                print("Solved in %d steps and %d episodes!"%(itr, done_episodes))
                 break 
             
         if batch_episodes < EPISODES_TO_TRAIN:
