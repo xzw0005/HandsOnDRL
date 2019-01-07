@@ -56,7 +56,7 @@ def mutate(net):
 if __name__=='__main__':
     writer = SummaryWriter(comment='CartPole-GA')
     env = gym.make(ENV_NAME)
-    gen_idx = 0
+    itr = 0
     nets = [Net(env.observation_space.shape[0], env.action_space.n) for _ in range(POPULATION_SIZE)]
     population = [(net, evaluate(env, net)) for net in nets]
     while True:
@@ -66,12 +66,12 @@ if __name__=='__main__':
         fit_mean = np.mean(fitnesses)
         fit_std = np.std(fitnesses)
         fit_max = np.max(fitnesses)
-        writer.add_scalar('fitness_mean', fit_mean, gen_idx)
-        writer.add_scalar('fitness_std', fit_std, gen_idx)
-        writer.add_scalar('fitness_max', fit_max, gen_idx)
-        print('%d: fitness_mean=%.2f, fitness_std=%.2f, fitness_max=%.2f'%(gen_idx, fit_mean, fit_std, fit_max))
+        writer.add_scalar('fitness_mean', fit_mean, itr)
+        writer.add_scalar('fitness_std', fit_std, itr)
+        writer.add_scalar('fitness_max', fit_max, itr)
+        print('%d: fitness_mean=%.2f, fitness_std=%.2f, fitness_max=%.2f'%(itr, fit_mean, fit_std, fit_max))
         if fit_mean > 199:
-            print('Solved in %d generations'%gen_idx)
+            print('Solved in %d generations'%itr)
             break 
         
         # Next generation
@@ -82,5 +82,5 @@ if __name__=='__main__':
             parent_net = prev_population[parent_idx][0]
             child = mutate(parent_net)
             population.append((child, evaluate(env, child)))
-        gen_idx += 1
+        itr += 1
     pass

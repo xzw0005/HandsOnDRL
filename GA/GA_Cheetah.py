@@ -110,7 +110,7 @@ if __name__=='__main__':
         seeds = [(np.random.randint(MAX_SEED), ) for _ in range(SEEDS_PER_WORKER)]
         input_queue.put(seeds)
         
-    gen_idx = 0 
+    itr = 0 
     elite = None 
     while True:
         tic = time.time()
@@ -128,15 +128,15 @@ if __name__=='__main__':
         fit_mean = np.mean(fitnesses)
         fit_std = np.std(fitnesses)
         fit_max = np.max(fitnesses)
-        writer.add_scalar('fitness_mean', fit_mean, gen_idx)
-        writer.add_scalar('fitness_std', fit_std, gen_idx)
-        writer.add_scalar('fitness_max', fit_max, gen_idx)
-        writer.add_scalar("batch_steps", batch_steps, gen_idx)
+        writer.add_scalar('fitness_mean', fit_mean, itr)
+        writer.add_scalar('fitness_std', fit_std, itr)
+        writer.add_scalar('fitness_max', fit_max, itr)
+        writer.add_scalar("batch_steps", batch_steps, itr)
         gen_time = time.time() - tic 
-        writer.add_scalar("gen_seconds", gen_time, gen_idx)
+        writer.add_scalar("gen_seconds", gen_time, itr)
         speed = batch_steps / gen_time
-        writer.add_scalar('speed', speed, gen_idx)
-        print("%d: fitness_mean=%.2f, fitness_std=%.2f, fitness_max=%.2f, speed=%.2f f/s, gen_time=%.2f s"%(gen_idx, fit_mean, fit_std, fit_max, speed, gen_time))
+        writer.add_scalar('speed', speed, itr)
+        print("%d: fitness_mean=%.2f, fitness_std=%.2f, fitness_max=%.2f, speed=%.2f f/s, gen_time=%.2f s"%(itr, fit_mean, fit_std, fit_max, speed, gen_time))
         
         elite = population[0]
         for worker_queue in input_queues:
@@ -146,5 +146,5 @@ if __name__=='__main__':
                 next_seed = np.random.randint(MAX_SEED)
                 seeds.append(tuple( list(population[parent][0]) + [next_seed] ))
             worker_queue.put(seeds)
-        gen_idx += 1
+        itr += 1
     pass
