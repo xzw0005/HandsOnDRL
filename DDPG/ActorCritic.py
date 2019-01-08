@@ -137,7 +137,7 @@ if __name__=='__main__':
     env = gym.make(ENV_ID)
     test_env = gym.make(ENV_ID)
         
-    net = ACModel(env.observation_space.shape[0], env.action_space.shape[0])
+    net = ACModel(env.observation_space.shape[0], env.action_space.shape[0]).to(device)
     print(net)
     agent = ACAgent(net, device=device)
     
@@ -194,11 +194,11 @@ if __name__=='__main__':
                 loss = loss_sval + loss_policy + loss_entropy
                 loss.backward()
                 optimizer.step()
-        
-                tb_tracker.track("advantage", adv_v, step_idx)
-                tb_tracker.track("values", state_vals_v, step_idx)
-                tb_tracker.track("batch_rewards", qvals_v, step_idx)
-                tb_tracker.track("loss_entropy", loss_entropy, step_idx)
-                tb_tracker.track("loss_policy", loss_policy, step_idx)
-                tb_tracker.track("loss_value", loss_sval, step_idx)
-                tb_tracker.track("loss_total", loss, step_idx)        
+                
+                writer.add_scalar("advantage", np.mean(adv_v.data.cpu().numpy()), step_idx)
+                writer.add_scalar("batch_rewards", np.mean(qvals_v.data.cpu().numpy()), step_idx)
+                writer.add_scalar("V(s)", np.mean(state_vals_v.data.cpu().numpy()), step_idx)
+                writer.add_scalar("loss_entropy", loss_entropy.item(), step_idx)
+                writer.add_scalar("loss_policy", loss_policy.item(), step_idx)
+                writer.add_scalar("loss_total", loss.item(), step_idx)  
+            
