@@ -26,7 +26,7 @@ BATCH_SIZE = 64
 LEARNING_RATE = 1e-4
 REPLAY_SIZE = int(1e5)
 REPLAY_INITIAL = int(1e4)
-TEST_ITERS = 1000
+TEST_ITERS = 5000
 
 Vmax = 10
 Vmin = -10
@@ -162,6 +162,25 @@ def unpack_batch_ddqn(batch, device='cpu'):
     dones_v = torch.ByteTensor(dones).to(device)
     return states_v, actions_v, rewards_v, dones_v, last_states_v
 
+def test(actor_net, env, cnt=10, device='cpu'):
+    tot_rew = 0. 
+    steps = 0 
+    for _ in range(cnt):
+        obs = env.reset()
+        while True:
+            obs_np = np.array([obs], dtype=np.float32)
+            obs_v = torch.tensor(obs_np).to(device)
+            mu_v = actor_net(obs_v)
+            action = mu_v.squeeze(dim=0).data.cpu().numpy()
+            action = np.clip(action, -1, 1)
+            sp, r, done, _ =  env.step(action)
+            tot_rew += r 
+            steps += 1 
+            if done: 
+                break 
+            obs = sp
+    return tot_rew/cnt, steps/cnt
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cuda', default=False, action='store_true', help='Enable CUDA')
@@ -181,6 +200,9 @@ if __name__ == '__main__':
     agent = AgentD4PG(actor_net, device=device)
     actor_optimizer = optim.Adam(actor_net.parameters(), lr=LEARNING_RATE)
     critic_optimizer = optim.Adam(critic_net.parameters(), lr=LEARNING_RATE)    
+    
+    test_env = gym.make(ENV_ID)
+    
     
     exp_source = ptan.experience.ExperienceSourceFirstLast(env, agent, gamma=GAMMA, steps_count=REWARD_STEPS)
     buffer = ptan.experience.ExperienceReplayBuffer(exp_source, buffer_size=REPLAY_SIZE)
@@ -205,16 +227,42 @@ if __name__ == '__main__':
             # Train Critic
             critic_optimizer.zero_grad()
             logits_v = critic_net(states_v, actions_v)
-            probs_v = F.
-            next_actions_v = target_actor.model(next_states_v)
-            next_logits_v = target_critic(next_states_v, next_actions_v)
-            next_dists_v = F.softmax(next_logits_v) # Z(s', a')
+            logprobs_v = F.log_softmax(logits_v, dim=1)
+            next_actions_v = target_actor.model(next_states_v).detach()
+            next_logits_v = target_critic.model(next_states_v, next_actions_v).detach()
+            next_dists_v = F.softmax(next_logits_v, dim=1)     # Z(s', a')
             Z_v = dist_projection(next_dists_v, rewards_v, dones_mask_v, \
                         gamma=GAMMA**REWARD_STEPS, n_atoms=N_ATOMS, vmin=Vmin, vmax=Vmax, device=device)
+            loss_critic = (-Z_v * logprobs_v).sum(dim=1).mean() # Cross-Entropy Loss
+            loss_critic.backward()
+            critic_optimizer.step()
             
+            # Train Actor
+            actor_optimizer.zero_grad()
+            deterministic_actions = actor_net(states_v)
+            dtm_logits = critic_net(states_v, deterministic_actions)
+            expectedQ = critic_net.dist2qval(dtm_logits)
+            loss_actor = -expectedQ.mean()
+            loss_actor.backward()
+            actor_optimizer.step()
+            
+            target_actor.soft_sync(actor_net)
+            target_critic.soft_sync(critic_net)
 
-
-
+            if step_idx % TEST_ITERS == 0:
+                ts = time.time()
+                rewards, steps = test(actor_net, test_env, device=device)
+                print("Test done in %.2f sec, reward %.3f, steps %d" % (
+                    time.time() - ts, rewards, steps))
+                writer.add_scalar("test_reward", rewards, step_idx)
+                writer.add_scalar("test_steps", steps, step_idx)
+                if best_reward is None or best_reward < rewards:
+                    if best_reward is not None:
+                        print("Best reward updated: %.3f -> %.3f" % (best_reward, rewards))
+                        name = "best_%+.3f_%d.dat" % (rewards, step_idx)
+                        fname = os.path.join(save_path, name)
+                        torch.save(actor_net.state_dict(), fname)
+                    best_reward = rewards
 
 
 
