@@ -18,7 +18,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import ptan
 
-ENV_ID = "MinitaurBulletEnv-v0"
+# ENV_ID = "MinitaurBulletEnv-v0"
+ENV_ID = 'Pendulum-v0'
 GAMMA = 0.99
 REWARD_STEPS = 2
 BATCH_SIZE = 64
@@ -32,9 +33,9 @@ class ActorNet(nn.Module):
     def __init__(self, obs_size, act_size):
         super(ActorNet, self).__init__()
         self.net = nn.Sequential(
-                nn.Linear(obs_size, 512), nn.ReLU(),
-                nn.Linear(512, 256), nn.ReLU(),
-                nn.Linear(256, act_size), nn.Tanh()
+                nn.Linear(obs_size, 400), nn.ReLU(),
+                nn.Linear(400, 300), nn.ReLU(),
+                nn.Linear(300, act_size), nn.Tanh()
             )
     def forward(self, x):
         return self.net(x)
@@ -46,13 +47,13 @@ class CriticNet(nn.Module):
                 nn.Linear(obs_size, 512), nn.ReLU(),
             )
         self.qval_net = nn.Sequential(
-                nn.Linear(512+act_size, 256), nn.ReLU(),
-                nn.Linear(256, 1)
+                nn.Linear(400+act_size, 300), nn.ReLU(),
+                nn.Linear(300, 1)
             )
     def forward(self, x, act):
         obs_out = self.obs_net(x)
-        qval_input = torch.cat([obs_out, act])
-        return self.qval_net(qval_input, dim=1)
+        qval_input = torch.cat([obs_out, act], dim=1)
+        return self.qval_net(qval_input)
     
 class TargetNet:
     def __init__(self, model):
