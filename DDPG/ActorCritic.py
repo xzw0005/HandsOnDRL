@@ -149,56 +149,52 @@ if __name__=='__main__':
     batch = []
     best_rew = None 
     with ptan.common.utils.RewardTracker(writer) as tracker:
-        with ptan.common.utils.TBMeanTracker(writer, batch_size=10) as tb_tracker:
-            for step_idx, exp in enumerate(exp_source):
-                rewards_steps = exp_source.pop_rewards_steps()
-                if rewards_steps:
-                    rewards, steps = zip(*rewards_steps)
-                    tb_tracker.track('episode_steps', steps[0], step_idx)
-                    tracker.reward(rewards[0], step_idx)
-                if step_idx % TEST_ITERS == 0:
-                    tic = time.time()
-                    rewards, steps = test_net(net, test_env, device=device)
-                    print('Test done in %.2f sec, mean episodic rewards=%.3f, mean episodic steps=%d'\
-                          %(time.time()-tic, rewards, steps))
-                    writer.add_scalar('test_rewards', rewards, step_idx)
-                    writer.add_scalar('test_steps', steps, step_idx)
-                    if best_rew is None or best_rew < rewards:
-                        if best_rew is not None:
-                            print("Best episodic reward updated %.3f ==> %.3f"%(best_rew, rewards))
-                            name = 'best_%+.3f_%d.dat' % (rewards, step_idx)
-                            fname = os.path.join(save_path, name)
-                            torch.save(net.state_dict(), fname)
-                    best_rew = rewards
-                    
-                batch.append(exp)
-                if len(batch) < BATCH_SIZE:
-                    continue
+        for step_idx, exp in enumerate(exp_source):
+            rewards_steps = exp_source.pop_rewards_steps()
+
+            if step_idx % TEST_ITERS == 0:
+                tic = time.time()
+                rewards, steps = test_net(net, test_env, device=device)
+                print('Test done in %.2f sec, mean episodic rewards=%.3f, mean episodic steps=%d'\
+                      %(time.time()-tic, rewards, steps))
+                writer.add_scalar('test_rewards', rewards, step_idx)
+                writer.add_scalar('test_steps', steps, step_idx)
+                if best_rew is None or best_rew < rewards:
+                    if best_rew is not None:
+                        print("Best episodic reward updated %.3f ==> %.3f"%(best_rew, rewards))
+                        name = 'best_%+.3f_%d.dat' % (rewards, step_idx)
+                        fname = os.path.join(save_path, name)
+                        torch.save(net.state_dict(), fname)
+                best_rew = rewards
                 
-                states_v, actions_v, qvals_v = unpack_batch_ac(batch, net, GAMMA**REWARD_STEPS, device=device)
-                batch.clear()
-                
-                optimizer.zero_grad()
-                mu_v, sigma_sq_v, state_vals_v = net(states_v)
-                
-                loss_sval = F.mse_loss(input=state_vals_v.squeeze(-1), target=qvals_v)
-                
-                adv_v = qvals_v.unsqueeze(dim=-1) - state_vals_v.detach()
-                logpi = logprob_gaussian(mu_v, sigma_sq_v, actions_v)
-                weighted_logpi = adv_v * logpi
-                loss_policy = -weighted_logpi.mean()
-                
-                entropy = (-(torch.log(2 * math.pi * sigma_sq_v) + 1) / 2 ).mean()
-                loss_entropy = ENTROPY_BETA * entropy
-                
-                loss = loss_sval + loss_policy + loss_entropy
-                loss.backward()
-                optimizer.step()
-                
-                writer.add_scalar("advantage", np.mean(adv_v.data.cpu().numpy()), step_idx)
-                writer.add_scalar("batch_rewards", np.mean(qvals_v.data.cpu().numpy()), step_idx)
-                writer.add_scalar("V(s)", np.mean(state_vals_v.data.cpu().numpy()), step_idx)
-                writer.add_scalar("loss_entropy", loss_entropy.item(), step_idx)
-                writer.add_scalar("loss_policy", loss_policy.item(), step_idx)
-                writer.add_scalar("loss_total", loss.item(), step_idx)  
+            batch.append(exp)
+            if len(batch) < BATCH_SIZE:
+                continue
+            
+            states_v, actions_v, qvals_v = unpack_batch_ac(batch, net, GAMMA**REWARD_STEPS, device=device)
+            batch.clear()
+            
+            optimizer.zero_grad()
+            mu_v, sigma_sq_v, state_vals_v = net(states_v)
+            
+            loss_sval = F.mse_loss(input=state_vals_v.squeeze(-1), target=qvals_v)
+            
+            adv_v = qvals_v.unsqueeze(dim=-1) - state_vals_v.detach()
+            logpi = logprob_gaussian(mu_v, sigma_sq_v, actions_v)
+            weighted_logpi = adv_v * logpi
+            loss_policy = -weighted_logpi.mean()
+            
+            entropy = (-(torch.log(2 * math.pi * sigma_sq_v) + 1) / 2 ).mean()
+            loss_entropy = ENTROPY_BETA * entropy
+            
+            loss = loss_sval + loss_policy + loss_entropy
+            loss.backward()
+            optimizer.step()
+            
+            writer.add_scalar("advantage", np.mean(adv_v.data.cpu().numpy()), step_idx)
+            writer.add_scalar("batch_rewards", np.mean(qvals_v.data.cpu().numpy()), step_idx)
+            writer.add_scalar("V(s)", np.mean(state_vals_v.data.cpu().numpy()), step_idx)
+            writer.add_scalar("loss_entropy", loss_entropy.item(), step_idx)
+            writer.add_scalar("loss_policy", loss_policy.item(), step_idx)
+            writer.add_scalar("loss_total", loss.item(), step_idx)  
             
