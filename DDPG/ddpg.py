@@ -44,7 +44,7 @@ class CriticNet(nn.Module):
     def __init__(self, obs_size, act_size):
         super(CriticNet, self).__init__()
         self.obs_net = nn.Sequential(
-                nn.Linear(obs_size, 512), nn.ReLU(),
+                nn.Linear(obs_size, 400), nn.ReLU(),
             )
         self.qval_net = nn.Sequential(
                 nn.Linear(400+act_size, 300), nn.ReLU(),
