@@ -17,8 +17,9 @@ import torch.optim as optim
 
 from tensorboardX import SummaryWriter 
 
-DEFAULT_ENV_NAME = "PongNoFrameskip-v4"
-MEAN_REWARD_BOUND = 19.5
+# DEFAULT_ENV_NAME = "PongNoFrameskip-v4"
+DEFAULT_ENV_NAME = "BreakoutDeterministic-v4"
+MEAN_REWARD_BOUND = 400
 
 GAMMA = 0.99
 BATCH_SIZE = 32
